@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proyecto 1 BI etapa 2</title>
+    <link rel="stylesheet" href="css/index.css">
+</head>
+
+<body>
+    <div class="cabecera">
+        <h1>Proyecto 1 BI etapa 2</h1>
+        <h4> Grupo 38 </h4>
+        <h4> Isabel Carrascal </h4>
+        <h4>Luimarco Carrascal</h4>
+    </div>
+    <div class="cuerpo">
+        <div class="card-respuestas">
+            <h5>Aquí podra ver el ODS predecido por el modelo:</h5>
+            <div id="predictionDisplay">respuesta</div>
+        </div>
+        <div class="input">
+            <textarea name="texto" id="textArea" cols="30" rows="10" placeholder="Escriba aqui el texto a categorizar"></textarea>
+            <button id="predictButton">Predict</button>
+            <br>
+            <input type="file" id="csvFile" accept=".csv">
+            <button id="uploadButton">Upload and Predict</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('predictButton').addEventListener('click', function () {
+            const textoValue = document.querySelector('textarea[name="texto"]').value;
+
+            fetch('http://127.0.0.1:5000/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    Textos_espanol: textoValue
+                })
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    const respuestaDiv = document.getElementById('predictionDisplay');
+                    if (data.prediction && data.prediction.length > 0) {
+                        respuestaDiv.innerHTML = data.prediction[0];
+                    } else {
+                        respuestaDiv.innerHTML = "Error: " + data.error;
+                    }
+                })
+                .catch(error => {
+                    console.error('There was a problem with the fetch operation:', error.message);
+                });
+        });
+
+        document.getElementById('uploadButton').addEventListener('click', function () {
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select a CSV file first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('http://127.0.0.1:5000/upload_predict', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.blob();  // Convertir la respuesta a blob
+                })
+                .then(blob => {
+                    // Crear un enlace para descargar el archivo CSV
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'prediction_results.csv';
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                })
+                .catch(error => {
+                    alert("Error: " + error.message);
+                });
+        });
+    </script>
+
+</body>
+
+</html>
